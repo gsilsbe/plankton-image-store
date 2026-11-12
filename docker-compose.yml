@@ -1,0 +1,47 @@
+# Fixed project name so the data volumes (image-store_mongo-data, ...) are found
+# no matter what the folder is called.
+name: image-store
+
+services:
+  mongo:
+    image: mongo:9.0            # 9.0.4+ is needed on Linux kernels 6.19 and newer (e.g. Ubuntu 26.04)
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "127.0.0.1:27017:27017" # reachable from this machine only (for mongosh / Compass)
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      IMAGE_DB: ${IMAGE_DB:-image_db}
+      # First admin account, created on first start only (set these in .env)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the .env file (copy .env.example)}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SESSION_DAYS: ${SESSION_DAYS:-7}
+      # Data settings (see README "Configuration")
+      INSTRUMENTS: ${INSTRUMENTS:-IFCB,Planktoscope,Flowcam}
+      LEGACY_INSTRUMENT: ${LEGACY_INSTRUMENT:-Flowcam}
+      CLASS_FIELD: ${CLASS_FIELD:-object_annotation_category}
+      STATUS_FIELD: ${STATUS_FIELD:-object_annotation_status}
+      STATUS_CHOICES: ${STATUS_CHOICES:-validated,predicted,dubious}
+      PERSON_FIELD: ${PERSON_FIELD:-object_annotation_person_name}
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - uploads:/uploads
+
+volumes:
+  mongo-data:
+  uploads:

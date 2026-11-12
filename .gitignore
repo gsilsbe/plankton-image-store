@@ -1,0 +1,19 @@
+# Local secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Data that shouldn't be committed
+*.zip
+*.tsv
+backups/
+*.archive.gz
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
